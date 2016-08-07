@@ -1,13 +1,5 @@
 /**
- Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
- http://aws.amazon.com/apache2.0/
- or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
- */
-
-/**
- * This sample shows how to create a simple Trivia skill with a multiple choice format. The skill
- * supports 1 player at a time, and does not support games across sessions.
+ * This sample is a quick 
  */
 
 'use strict';
@@ -28,6 +20,12 @@ var questions = [
         ]
     }
 ];
+
+/**
+ * The time that the stopwatch started
+ * @type {Date}
+ */
+var startTime;
 
 // Route the incoming request based on type (LaunchRequest, IntentRequest,
 // etc.) The JSON body of the request is provided in the event parameter.
@@ -112,7 +110,24 @@ function onIntent(intentRequest, session, callback) {
     // Start stopwatch
     // Stop stopwatch
     // Check stopwatch
-
+    // Get help
+    switch(intentName){
+        case "AMAZON.StartOverIntent":
+            getWelcomeResponse(callback);
+            break;
+        case "AMAZON.StopIntent":
+            handleFinishSessionRequest(intent, session, callback);
+            break;
+        case "CheckTimeIntent":
+            handleCheckRequest(intent, session, callback);
+            break;
+        case "AMAZON.HelpIntent":
+            handleGetHelpRequest(intent, session, callback);
+            break;
+        default:
+            throw "Invalid intent";
+    }
+/*
     // dispatch custom intents to handlers here
     if ("AnswerIntent" === intentName) {
         handleAnswerRequest(intent, session, callback);
@@ -136,7 +151,7 @@ function onIntent(intentRequest, session, callback) {
         handleFinishSessionRequest(intent, session, callback);
     } else {
         throw "Invalid intent";
-    }
+    }*/
 }
 
 /**
@@ -157,64 +172,18 @@ var GAME_LENGTH = 5;
 var CARD_TITLE = "Stopwatch"; // Be sure to change this for your skill.
 
 function getWelcomeResponse(callback) {
+    startTime = new Date();
     var sessionAttributes = {},
-        speechOutput = "I will ask you " + GAME_LENGTH.toString()
-            + " questions, try to get as many right as you can. Just say the number of the answer. Let's begin. ",
-        shouldEndSession = false,
-
-        gameQuestions = populateGameQuestions(),
-        correctAnswerIndex = Math.floor(Math.random() * (ANSWER_COUNT)), // Generate a random index for the correct answer, from 0 to 3
-        roundAnswers = populateRoundAnswers(gameQuestions, 0, correctAnswerIndex),
-
-        currentQuestionIndex = 0,
-        spokenQuestion = Object.keys(questions[gameQuestions[currentQuestionIndex]])[0],
-        repromptText = "Question 1. " + spokenQuestion + " ",
-
-        i, j;
-
-    for (i = 0; i < ANSWER_COUNT; i++) {
-        repromptText += (i+1).toString() + ". " + roundAnswers[i] + ". "
-    }
-    speechOutput += repromptText;
+        speechOutput = `Stopwatch started at ${startTime.toString()}`,
+        shouldEndSession = false;
+        
     sessionAttributes = {
-        "speechOutput": repromptText,
-        "repromptText": repromptText,
-        "currentQuestionIndex": currentQuestionIndex,
-        "correctAnswerIndex": correctAnswerIndex + 1,
-        "questions": gameQuestions,
-        "score": 0,
-        "correctAnswerText":
-            questions[gameQuestions[currentQuestionIndex]][Object.keys(questions[gameQuestions[currentQuestionIndex]])[0]][0]
+        "speechOutput": speechOutput,
+        "repromptText": speechOutput,
+        "startTime": startTime.getMilliseconds()
     };
     callback(sessionAttributes,
-        buildSpeechletResponse(CARD_TITLE, speechOutput, repromptText, shouldEndSession));
-}
-
-function populateGameQuestions() {
-    var gameQuestions = [];
-    var indexList = [];
-    var index = questions.length;
-
-    if (GAME_LENGTH > index){
-        throw "Invalid Game Length.";
-    }
-
-    for (var i = 0; i < questions.length; i++){
-        indexList.push(i);
-    }
-
-    // Pick GAME_LENGTH random questions from the list to ask the user, make sure there are no repeats.
-    for (var j = 0; j < GAME_LENGTH; j++){
-        var rand = Math.floor(Math.random() * index);
-        index -= 1;
-
-        var temp = indexList[index];
-        indexList[index] = indexList[rand];
-        indexList[rand] = temp;
-        gameQuestions.push(indexList[index]);
-    }
-
-    return gameQuestions;
+        buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, shouldEndSession));
 }
 
 function populateRoundAnswers(gameQuestionIndexes, correctAnswerIndex, correctAnswerTargetLocation) {
@@ -340,7 +309,7 @@ function handleRepeatRequest(intent, session, callback) {
 }
 
 function handleGetHelpRequest(intent, session, callback) {
-    // Provide a help prompt for the user, explaining how the game is played. Then, continue the game
+    // Provide a help prompt for the user, explaining how a stopwatch works. Then, say current time
     // if there is one in progress, or provide the option to start another one.
 
     // Set a flag to track that we're in the Help state.
