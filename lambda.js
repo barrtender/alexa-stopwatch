@@ -37,14 +37,9 @@ exports.handler = function (event, context) {
     try {
         console.log("event.session.application.applicationId=" + event.session.application.applicationId);
 
-        /**
-         * Uncomment this if statement and populate with your skill's application ID to
-         * prevent someone else from configuring a skill that sends requests to this function.
-         */
-
-//     if (event.session.application.applicationId !== "amzn1.echo-sdk-ams.app.05aecccb3-1461-48fb-a008-822ddrt6b516") {
-//         context.fail("Invalid Application ID");
-//      }
+        if (event.session.application.applicationId !== "amzn1.ask.skill.adb925d8-fff6-4a26-bd33-a9557a2a56ae") {
+            context.fail("Invalid Application ID");
+        }
 
         if (event.session.new) {
             onSessionStarted({requestId: event.request.requestId}, event.session);
@@ -167,13 +162,14 @@ function getWelcomeResponse(session, callback) {
                 }
             }, function (err, data) {
                 var sessionAttributes = {},
-                    speechOutput = `Quit interrupting the movie Eric. Stopwatch started at ${startTime.toString()}`,
+                    speechOutput = `Stopwatch started at ${startTime.getHours()} ${startTime.getMinutes()}`,
                     shouldEndSession = false;
                 
                 if (err) {
                     console.log(err, err.stack);
                     speechOutput = 'There was some error. Check the logs for more info';
                 }
+                console.log(`started stopwatch at ${startTime} for user ${session.user.userId}`);
 
                 sessionAttributes = {
                     "speechOutput": speechOutput,
@@ -192,6 +188,7 @@ function getWelcomeResponse(session, callback) {
  * @param {function} callback A function to call 
  */
 function handleCheckRequest(session, callback) {
+    console.log(`checking stopwatch at for user ${session.user.userId}`);
     dynamodb.getItem({
                 TableName: 'Stopwatches',
                 Key: {
@@ -207,6 +204,7 @@ function handleCheckRequest(session, callback) {
                         buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, true));
                     return;
                 } else if (data.Item === undefined) {
+                    console.log(`No stopwatch found for user ${session.user.userId}`);
                     var speechOutput = 'There was no stopwatch started.';
                     callback(session.attributes,
                         buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, true));
@@ -214,9 +212,12 @@ function handleCheckRequest(session, callback) {
                 }
 
                 var foundStartTime = data.Item.Data.S;
+                var minutesDiff = (Date.now() - foundStartTime) / 60000;
+                var minutesAgo = Math.floor(minutesDiff);
+                var secondsAgo = Math.floor(minutesDiff % 1 * 60);
 
                 var sessionAttributes = {},
-                    speechOutput = `Most recent stopwatch started ${(Date.now() - foundStartTime) / 60000} minutes ago`,
+                    speechOutput = `Most recent stopwatch started ${minutesAgo} minutes and ${secondsAgo} seconds ago`,
                     shouldEndSession = false;
                 
                 sessionAttributes = {
