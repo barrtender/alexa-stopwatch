@@ -152,7 +152,7 @@ function getWelcomeResponse(session, callback) {
             }, function (err, data) {
                 var sessionAttributes = {},
                     // Assuming UTC -7. This means no portability but it'll work for us.
-                    speechOutput = `Stopwatch started at ${(startTime.getHours() + 5) % 12} ${startTime.getMinutes()}`,
+                    speechOutput = `Stopwatch started at ${(startTime.getHours() + 5) % 12} ${startTime.getMinutes() < 10 ? "oh" : ""} ${startTime.getMinutes()}`,
                     shouldEndSession = false;
                 
                 if (err) {
