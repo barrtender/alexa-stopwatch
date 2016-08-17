@@ -1,5 +1,11 @@
 /**
- * This sample is a quick 
+ * This app is a quick stopwatch app
+ * "Alexa start a stopwatch"
+ * "Alexa ask stopwatch how long it's been" 
+ * 
+ * Skill list here: https://developer.amazon.com/edw/home.html#/skills/list
+ * Lambda (code) goes here: https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/MyStopwatch?tab=code
+ * Database here: https://console.aws.amazon.com/dynamodb/home?region=us-east-1#tables:selected=Stopwatches
  */
 
 'use strict';
@@ -7,23 +13,6 @@
 
 var AWS = require("aws-sdk");
 var dynamodb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
-
-/**
- * When editing your questions pay attention to your punctuation. Make sure you use question marks or periods.
- * Make sure the first answer is the correct one. Set at least 4 answers, any extras will be shuffled in.
- */
-var questions = [
-    {
-        "Reindeer have very thick coats, how many hairs per square inch do they have?": [
-            "13,000",
-            "1,200",
-            "5,000",
-            "700",
-            "1,000",
-            "120,000"
-        ]
-    }
-];
 
 /**
  * The time that the stopwatch started
@@ -162,7 +151,8 @@ function getWelcomeResponse(session, callback) {
                 }
             }, function (err, data) {
                 var sessionAttributes = {},
-                    speechOutput = `Stopwatch started at ${startTime.getHours()} ${startTime.getMinutes()}`,
+                    // Assuming UTC -7. This means no portability but it'll work for us.
+                    speechOutput = `Stopwatch started at ${(startTime.getHours() + 5) % 12} ${startTime.getMinutes()}`,
                     shouldEndSession = false;
                 
                 if (err) {
@@ -177,7 +167,7 @@ function getWelcomeResponse(session, callback) {
                     "startTime": startTime
                 };
                 callback(sessionAttributes,
-                    buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, shouldEndSession));
+                    buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput));
             });
 
 }
@@ -201,13 +191,13 @@ function handleCheckRequest(session, callback) {
                     console.log(err, err.stack);
                     var speechOutput = 'An error has occurred, check the logs for more info';
                     callback(session.attributes,
-                        buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, true));
+                        buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput));
                     return;
                 } else if (data.Item === undefined) {
                     console.log(`No stopwatch found for user ${session.user.userId}`);
                     var speechOutput = 'There was no stopwatch started.';
                     callback(session.attributes,
-                        buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, true));
+                        buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput));
                     return;
                 }
 
@@ -226,7 +216,7 @@ function handleCheckRequest(session, callback) {
                     "startTime": foundStartTime
                 };
                 callback(sessionAttributes,
-                    buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, shouldEndSession));
+                    buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput));
             });
 }
 
@@ -237,7 +227,7 @@ function handleRepeatRequest(intent, session, callback) {
         getWelcomeResponse(session, callback);
     } else {
         callback(session.attributes,
-            buildSpeechletResponseWithoutCard(session.attributes.speechOutput, session.attributes.repromptText, false));
+            buildSpeechletResponseWithoutCard(session.attributes.speechOutput, session.attributes.repromptText));
     }
 }
 
@@ -259,25 +249,19 @@ function handleGetHelpRequest(intent, session, callback) {
 
     var shouldEndSession = false;
     callback(session.attributes,
-        buildSpeechletResponseWithoutCard(speechOutput, repromptText, shouldEndSession));
+        buildSpeechletResponseWithoutCard(speechOutput, repromptText));
 }
 
 function handleFinishSessionRequest(intent, session, callback) {
     // End the session with a "Good bye!" if the user wants to quit the game
     callback(session.attributes,
-        buildSpeechletResponseWithoutCard("Good bye!", "", true));
-}
-
-function isAnswerSlotValid(intent) {
-    var answerSlotFilled = intent.slots && intent.slots.Answer && intent.slots.Answer.value;
-    var answerSlotIsInt = answerSlotFilled && !isNaN(parseInt(intent.slots.Answer.value));
-    return answerSlotIsInt && parseInt(intent.slots.Answer.value) < (ANSWER_COUNT + 1) && parseInt(intent.slots.Answer.value) > 0;
+        buildSpeechletResponseWithoutCard("Good bye!", ""));
 }
 
 // ------- Helper functions to build responses -------
 
 
-function buildSpeechletResponse(title, output, repromptText, shouldEndSession) {
+function buildSpeechletResponse(title, output, repromptText) {
     return {
         outputSpeech: {
             type: "PlainText",
@@ -294,11 +278,11 @@ function buildSpeechletResponse(title, output, repromptText, shouldEndSession) {
                 text: repromptText
             }
         },
-        shouldEndSession: true //shouldEndSession
+        shouldEndSession: true
     };
 }
 
-function buildSpeechletResponseWithoutCard(output, repromptText, shouldEndSession) {
+function buildSpeechletResponseWithoutCard(output, repromptText) {
     return {
         outputSpeech: {
             type: "PlainText",
@@ -310,7 +294,7 @@ function buildSpeechletResponseWithoutCard(output, repromptText, shouldEndSessio
                 text: repromptText
             }
         },
-        shouldEndSession: true//shouldEndSession
+        shouldEndSession: true
     };
 }
 
